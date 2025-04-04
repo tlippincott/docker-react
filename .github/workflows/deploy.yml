@@ -39,11 +39,11 @@ jobs:
           context: .
           file: Dockerfile.dev
           push: false # set to 'true' if this should be pushed to a registry
-          tags: zosorox/react-test:${{ github.sha }}
+          tags: zosorox/tests:${{ github.sha }}
 
       - name: Run tests in Docker container
         run: |
-          docker run -e  CI=true zosorox/react-test npm test
+          docker run -e  CI=true zosorox/tests npm test
 
       - # Temp fix to move/delete cache to it does not keep growing
         name: Move cache
