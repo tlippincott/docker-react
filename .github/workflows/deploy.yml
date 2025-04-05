@@ -33,7 +33,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      - name: Build Docker image (with load during testing)
+      - name: Build Docker image (with 'load' during testing)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -44,7 +44,7 @@ jobs:
 
       - name: Run tests in Docker container
         run: |
-          docker run -e CI=true zosorox/docker-react-tests npm test
+          docker run -e CI=true zosorox/docker-react-tests:${{ github.sha }} npm test
 
       - # Temp fix to move/delete cache to it does not keep growing
         name: Move cache
