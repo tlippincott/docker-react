@@ -28,7 +28,7 @@ jobs:
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/.buildx-cache
+          path: DockerImages/cache/_temp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-
@@ -49,5 +49,5 @@ jobs:
       - # Temp fix to move/delete cache to it does not keep growing
         name: Move cache
         run: |
-          rm -rf ${{ runner.temp }}/.buildx-cache
-          mv ${{ runner.temp }}/.buildx-cache-new ${{ runner.temp }}/.buildx-cache
+          rm -rf DockerImages/cache/_temp/.buildx-cache
+          mv DockerImages/cache/_temp/.buildx-cache-new DockerImages/cache/_temp/.buildx-cache
