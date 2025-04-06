@@ -41,6 +41,8 @@ jobs:
           push: false # set to 'true' if this should be pushed to a registry
           load: true
           tags: zosorox/docker-react-tests:${{ github.sha }}
+          cache-from: type=local,src=DockerImages/cache/_temp/.buildx-cache
+          cache-to: type=local,dest=DockerImages/cache/_temp/.buildx-cache-new,mode=max
 
       - name: Run tests in Docker container
         run: |
