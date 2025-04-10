@@ -47,6 +47,13 @@ jobs:
       - name: Run tests in Docker container
         run: |
           docker run -e CI=true zosorox/docker-react-tests:${{ github.sha }} npm test
+        continue-on-error: false # This ensures the workflow fails if tests fail
+
+      - name: Check test results
+        if: ${{ failure() }}
+        run: |
+          echo '***** TESTS FAILED! *****'
+          exit 1
 
       - # Temp fix to move/delete cache to it does not keep growing
         name: Move cache
