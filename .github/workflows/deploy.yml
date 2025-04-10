@@ -4,12 +4,14 @@ on:
   workflow_dispatch: # Enables manual triggering of workflow
   push:
     branches:
-      - main
       - experiment/workflow
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build:
-    name: Build Docker image and push to repository
+  test:
+    name: Test Docker image
     runs-on: ubuntu-latest
 
     steps:
@@ -60,3 +62,13 @@ jobs:
         run: |
           rm -rf DockerImages/cache/_temp/.buildx-cache
           mv DockerImages/cache/_temp/.buildx-cache-new DockerImages/cache/_temp/.buildx-cache
+
+  # merge:
+  #   name: Merge to main
+  #   if: ${{ success() }} # Only run if tests pass
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+
