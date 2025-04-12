@@ -1,5 +1,9 @@
 name: Deploy Frontend
 
+permissions:
+  contents: write
+  pull-requests: write
+
 on:
   workflow_dispatch: # Enables manual triggering of workflow
   push:
