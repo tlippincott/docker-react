@@ -5,9 +5,6 @@ on:
   push:
     branches:
       - experiment/workflow
-  pull_request:
-    branches:
-      - main
 
 jobs:
   test:
@@ -63,12 +60,42 @@ jobs:
           rm -rf DockerImages/cache/_temp/.buildx-cache
           mv DockerImages/cache/_temp/.buildx-cache-new DockerImages/cache/_temp/.buildx-cache
 
-  # merge:
-  #   name: Merge to main
-  #   if: ${{ success() }} # Only run if tests pass
-  #   runs-on: ubuntu-latest
+  merge:
+    name: Merge to main
+    needs: test # Only run if tests pass
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
+      - name: Set up Git user
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Fetch all branches
+        run: git fetch origin
+
+      - name: Checkout main branch
+        run: git checkout main
+
+      - name: Check for merge conflicts
+        run: |
+          git merge --no-commit --no-ff origin/experiment/workflow || echo 'conflict' > conflict.txt
+
+      - name: Fail if there are conficlts
+        run: |
+          if [ -f conflict.txt ]; then
+            echo 'MERGE CONFLICT DETECTED! Aborting merge.'
+            exit 1
+          fi
+
+      - # If there are no merge conflicts, continue with the merge and delete the merged branch
+        name: Merge experiment/workflow into main
+        run: |
+          git commit -m 'Merge experiment/workflow into main [auto-merge by workflow]'
+          git push origin --delete experiment/workflow
+          git push origin main
