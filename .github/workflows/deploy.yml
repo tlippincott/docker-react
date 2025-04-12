@@ -1,0 +1,102 @@
+name: Deploy Frontend
+
+on:
+  workflow_dispatch: # Enables manual triggering of workflow
+  push:
+    branches:
+      - experiment/workflow
+
+jobs:
+  test:
+    name: Test Docker image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker HUB
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: DockerImages/cache/_temp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build Docker image (with 'load' during testing)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.dev
+          push: false # set to 'true' if this should be pushed to a registry
+          load: true
+          tags: zosorox/docker-react-tests:${{ github.sha }}
+          cache-from: type=local,src=DockerImages/cache/_temp/.buildx-cache
+          cache-to: type=local,dest=DockerImages/cache/_temp/.buildx-cache-new,mode=max
+
+      - name: Run tests in Docker container
+        run: |
+          docker run -e CI=true zosorox/docker-react-tests:${{ github.sha }} npm test
+        continue-on-error: false # This ensures the workflow fails if tests fail
+
+      - name: Check test results
+        if: ${{ failure() }}
+        run: |
+          echo '***** TESTS FAILED! *****'
+          exit 1
+
+      - # Temp fix to move/delete cache to it does not keep growing
+        name: Move cache
+        run: |
+          rm -rf DockerImages/cache/_temp/.buildx-cache
+          mv DockerImages/cache/_temp/.buildx-cache-new DockerImages/cache/_temp/.buildx-cache
+
+  merge:
+    name: Merge to main
+    needs: test # Only run if tests pass
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.WORKFLOW_TOKEN }}
+
+      - name: Set up Git user
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Fetch all branches
+        run: git fetch origin
+
+      - name: Checkout main branch
+        run: git checkout main
+
+      - name: Check for merge conflicts
+        run: |
+          git merge --no-commit --no-ff origin/experiment/workflow || echo 'conflict' > conflict.txt
+
+      - name: Fail if there are conficlts
+        run: |
+          if [ -f conflict.txt ]; then
+            echo 'MERGE CONFLICT DETECTED! Aborting merge.'
+            exit 1
+          fi
+
+      - # If there are no merge conflicts, continue with the merge and delete the merged branch
+        name: Merge experiment/workflow into main
+        run: |
+          git commit -m 'Merge experiment/workflow into main [auto-merge by workflow]'
+          git push origin --delete experiment/workflow
+          git push origin main
